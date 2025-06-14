@@ -4,15 +4,18 @@ Represents chess knowledge as an egocentric DAG with difficulty-weighted distanc
 """
 
 class KnowledgeGraph:
-    def __init__(self):
+    def __init__(self, domain:str):
         self.atomic_concepts = {}
         self.compound_concepts = {}
-        self.ego_point = "chess_basics"  # Starting point for difficulty calculation
+        self.ego_point = domain  # Starting point for difficulty calculation
     
-    def add_atomic_concept(self, concept_id, name, description, difficulty, prerequisites=None):
+    def add_atomic_concept(self, concept_id, name, description, difficulty:int, prerequisites=None):
         """Add an atomic (indivisible) concept to the knowledge graph"""
         if prerequisites is None:
             prerequisites = []
+        
+        if not 0 < difficulty < 6:
+            raise ValueError("difficulty should be in 1 - 5")
         
         self.atomic_concepts[concept_id] = {
             "name": name,
@@ -22,10 +25,13 @@ class KnowledgeGraph:
             "type": "atomic"
         }
     
-    def add_compound_concept(self, concept_id, name, description, atomic_parts, difficulty, prerequisites=None):
+    def add_compound_concept(self, concept_id, name, description, atomic_parts:list, difficulty:int, prerequisites:list=None):
         """Add a compound concept built from atomic concepts"""
         if prerequisites is None:
             prerequisites = []
+        
+        if not 0 < difficulty < 6:
+            raise ValueError("difficulty should be in 1 - 5")        
         
         self.compound_concepts[concept_id] = {
             "name": name,
@@ -104,7 +110,7 @@ class KnowledgeGraph:
 
 # Example usage - Chess knowledge graph
 def create_chess_knowledge_graph():
-    kg = KnowledgeGraph()
+    kg = KnowledgeGraph(domain="Chess")
     
     # Ego point
     kg.add_atomic_concept("chess_basics", "Chess Basics", 
@@ -126,10 +132,35 @@ def create_chess_knowledge_graph():
     kg.add_atomic_concept("pawn_capture_diagonal", "Pawn Diagonal Capture", 
                          "A pawn captures by moving diagonally forward one square", 2, ["pawn_move_forward"])
     
+    kg.add_atomic_concept("knight_movement", "Knight Movement", 
+                          "A knight can only move in an L shape consisting of two horizontal and one vertical squares, or two vertical and one horizontal squares", 
+                          3, ["board_8x8"])
+    
+    kg.add_atomic_concept("bishop_movement", "Bishop Movement", 
+                          "A bishop can move diagonally on its own colour", 
+                          2, ["board_8x8"])
+    
+    kg.add_atomic_concept("rook_movement", "Rook Movement", 
+                          "A rook can move horizontally or vertically", 
+                          2, ["board_8x8"])
+    
+    kg.add_atomic_concept("queen_movement", "Queen Movement", 
+                          "A queen can move diagonally, horizontally or vertically", 
+                          3, ["board_8x8", "rook_movement", "bishop_movement"])
+    
+    kg.add_atomic_concept("king_movement", "King Movement", 
+                          "The king can move one step diagonally, horizontally or vertically", 
+                          3, ["board_8x8", "queen_movement"])
+    
     # Compound concept
     kg.add_compound_concept("pawn_movement", "Complete Pawn Movement", 
                            "All rules governing how pawns move and capture",
                            ["pawn_move_forward", "pawn_initial_two", "pawn_capture_diagonal"],
+                           3, ["board_8x8"])
+    
+    kg.add_compound_concept("piece_movement", "Complete Movement of All Piece Types", 
+                           "All rules governing how pieces move",
+                           ["pawn_movement", "bishop_movement", "knight_movement", "rook_movement", "king_movement", "queen_movement"],
                            3, ["board_8x8"])
     
     return kg
